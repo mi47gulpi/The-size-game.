@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jogo do Tamanho</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 50px 200px 50px 50px; /* espaço lateral direito */
+      background: #f5f5f5;
+      color: #222;
+      position: relative;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    input, button {
+      font-size: 18px;
+      padding: 10px;
+      margin: 10px;
+    }
+    #language-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+    }
+    #validated-list-container {
+      position: fixed;
+      top: 50px;
+      right: 20px;
+      width: 180px;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      font-size: 14px;
+      text-align: left;
+      user-select: none;
+    }
+    #validated-list-container h3 {
+      margin-top: 0;
+      font-weight: normal;
+      font-size: 16px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 4px;
+    }
+    #validated-list {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+    }
+    #validated-list li {
+      padding: 3px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: white;
+      margin: 15% auto;
+      padding: 30px;
+      border: 1px solid #888;
+      width: 300px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 18px;
+    }
+    #signature {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      font-size: 12px;
+      color: #888;
+      font-style: italic;
+      user-select: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <button id="language-btn" onclick="toggleLanguage()">EN</button>
+  <h1 id="title">Jogo do Tamanho</h1>
+  <p id="current-item">Item atual: Papel</p>
+
+  <input type="text" id="item-input" placeholder="Escreve o próximo item" autocomplete="off" />
+  <button onclick="checkItem()" id="check-btn">Verificar</button>
+
+  <p id="message"></p>
+
+  <div id="validated-list-container">
+    <h3 id="list-title">Itens validados</h3>
+    <ul id="validated-list"></ul>
+  </div>
+
+  <div id="loss-modal" class="modal">
+    <div class="modal-content">
+      <h2 id="modal-title">Perdeste!</h2>
+      <p id="modal-message">Voltando ao papel...</p>
+      <button onclick="closeModal()">OK</button>
+    </div>
+  </div>
+
+  <div id="signature">Criado por Miguel Martins.</div>
+
+  <script>
+    const items = [
+  { pt: "papel", en: "paper", size: 1 },
+  { pt: "caneta", en: "pen", size: 2 },
+  { pt: "livro", en: "book", size: 3 },
+  { pt: "bola", en: "ball", size: 4 },
+  { pt: "garrafa", en: "bottle", size: 5 },
+  { pt: "cadeira", en: "chair", size: 6 },
+  { pt: "mesa", en: "table", size: 7 },
+  { pt: "mala", en: "suitcase", size: 8 },
+  { pt: "carro", en: "car", size: 9 },
+  { pt: "cão", en: "dog", size: 10 },
+  { pt: "gato", en: "cat", size: 11 },
+  { pt: "bicicleta", en: "bicycle", size: 12 },
+  { pt: "telefone", en: "phone", size: 13 },
+  { pt: "porta", en: "door", size: 14 },
+  { pt: "janela", en: "window", size: 15 },
+  { pt: "computador", en: "computer", size: 16 },
+  { pt: "televisão", en: "television", size: 17 },
+  { pt: "sofá", en: "sofa", size: 18 },
+  { pt: "cama", en: "bed", size: 19 },
+  { pt: "mesa de centro", en: "coffee table", size: 20 },
+  { pt: "relógio", en: "clock", size: 21 },
+  { pt: "sapato", en: "shoe", size: 22 },
+  { pt: "chapéu", en: "hat", size: 23 },
+  { pt: "camisa", en: "shirt", size: 24 },
+  { pt: "calças", en: "pants", size: 25 },
+  { pt: "óculos", en: "glasses", size: 26 },
+  { pt: "carteira", en: "wallet", size: 27 },
+  { pt: "guarda-chuva", en: "umbrella", size: 28 },
+  { pt: "chave", en: "key", size: 29 },
+  { pt: "livro de receitas", en: "cookbook", size: 30 },
+  { pt: "toalha", en: "towel", size: 31 },
+  { pt: "copo", en: "glass", size: 32 },
+  { pt: "prato", en: "plate", size: 33 },
+  { pt: "garfo", en: "fork", size: 34 },
+  { pt: "faca", en: "knife", size: 35 },
+  { pt: "colher", en: "spoon", size: 36 },
+  { pt: "ventilador", en: "fan", size: 37 },
+  { pt: "lâmpada", en: "lamp", size: 38 },
+  { pt: "ventoinha", en: "small fan", size: 39 },
+  { pt: "mesa de jantar", en: "dining table", size: 40 },
+  { pt: "geladeira", en: "fridge", size: 41 },
+  { pt: "fogão", en: "stove", size: 42 },
+  { pt: "micro-ondas", en: "microwave", size: 43 },
+  { pt: "liquidificador", en: "blender", size: 44 },
+  { pt: "cafeteira", en: "coffee maker", size: 45 },
+  { pt: "ventilador de teto", en: "ceiling fan", size: 46 },
+  { pt: "ar condicionado", en: "air conditioner", size: 47 },
+  { pt: "televisão grande", en: "big TV", size: 48 },
+  { pt: "sofa grande", en: "big sofa", size: 49 },
+  { pt: "cama de casal", en: "double bed", size: 50 },
+  { pt: "mesa de escritório", en: "desk", size: 51 },
+  { pt: "estante", en: "bookshelf", size: 52 },
+  { pt: "armário", en: "wardrobe", size: 53 },
+  { pt: "escada", en: "ladder", size: 54 },
+  { pt: "porta de garagem", en: "garage door", size: 55 },
+  { pt: "janela grande", en: "big window", size: 56 },
+  { pt: "carro pequeno", en: "small car", size: 57 },
+  { pt: "caminhão", en: "truck", size: 58 },
+  { pt: "ônibus", en: "bus", size: 59 },
+  { pt: "avião", en: "airplane", size: 60 },
+  { pt: "navio", en: "ship", size: 61 },
+  { pt: "barco pequeno", en: "small boat", size: 62 },
+  { pt: "motocicleta", en: "motorcycle", size: 63 },
+  { pt: "bicicleta infantil", en: "kids bike", size: 64 },
+  { pt: "patinete", en: "scooter", size: 65 },
+  { pt: "trem", en: "train", size: 66 },
+  { pt: "metrô", en: "subway", size: 67 },
+  { pt: "helicóptero", en: "helicopter", size: 68 },
+  { pt: "carro de bombeiros", en: "fire truck", size: 69 },
+  { pt: "ambulância", en: "ambulance", size: 70 },
+  { pt: "polícia", en: "police car", size: 71 },
+  { pt: "ônibus escolar", en: "school bus", size: 72 },
+  { pt: "caminhão de lixo", en: "garbage truck", size: 73 },
+  { pt: "caixa", en: "box", size: 74 },
+  { pt: "bola de futebol", en: "soccer ball", size: 75 },
+  { pt: "bola de basquete", en: "basketball", size: 76 },
+  { pt: "bola de vôlei", en: "volleyball", size: 77 },
+  { pt: "rede de vôlei", en: "volleyball net", size: 78 },
+  { pt: "raquete de tênis", en: "tennis racket", size: 79 },
+  { pt: "bola de tênis", en: "tennis ball", size: 80 },
+  { pt: "capacete", en: "helmet", size: 81 },
+  { pt: "luvas", en: "gloves", size: 82 },
+  { pt: "uniforme", en: "uniform", size: 83 },
+  { pt: "bola de golfe", en: "golf ball", size: 84 },
+  { pt: "saco de golfe", en: "golf bag", size: 85 },
+  { pt: "vara de pescar", en: "fishing rod", size: 86 },
+  { pt: "caiaque", en: "kayak", size: 87 },
+  { pt: "prancha de surf", en: "surfboard", size: 88 },
+  { pt: "vela", en: "sail", size: 89 },
+  { pt: "rede de pesca", en: "fishing net", size: 90 },
+  { pt: "âncora", en: "anchor", size: 91 },
+  { pt: "barco de pesca", en: "fishing boat", size: 92 },
+  { pt: "foguete", en: "rocket", size: 94 },
+  { pt: "satélite", en: "satellite", size: 95 },
+  { pt: "nave espacial", en: "spaceship", size: 96 },
+  { pt: "planeta Terra", en: "Earth", size: 97 },
+  { pt: "lua", en: "moon", size: 98 },
+  { pt: "estrela", en: "star", size: 99 },
+  { pt: "cometa", en: "comet", size: 100 },
+  { pt: "meteoro", en: "meteor", size: 101 },
+  { pt: "nuvem", en: "cloud", size: 102 },
+  { pt: "montanha", en: "mountain", size: 103 },
+  { pt: "vale", en: "valley", size: 104 },
+  { pt: "rio", en: "river", size: 105 },
+  { pt: "lago", en: "lake", size: 106 },
+  { pt: "oceano", en: "ocean", size: 107 },
+  { pt: "floresta", en: "forest", size: 108 },
+  { pt: "deserto", en: "desert", size: 109 },
+  { pt: "ilha", en: "island", size: 110 },
+  { pt: "cidade", en: "city", size: 111 },
+  { pt: "vila", en: "village", size: 112 },
+  { pt: "bairro", en: "neighborhood", size: 113 },
+  { pt: "rua", en: "street", size: 114 },
+  { pt: "praça", en: "square", size: 115 },
+  { pt: "parque", en: "park", size: 116 },
+  { pt: "jardim", en: "garden", size: 117 },
+  { pt: "escola", en: "school", size: 118 },
+  { pt: "universidade", en: "university", size: 119 },
+  { pt: "hospital", en: "hospital", size: 120 },
+  { pt: "igreja", en: "church", size: 121 },
+  { pt: "biblioteca", en: "library", size: 122 },
+  { pt: "loja", en: "shop", size: 123 },
+  { pt: "mercado", en: "market", size: 124 },
+  { pt: "restaurante", en: "restaurant", size: 125 },
+  { pt: "hotel", en: "hotel", size: 126 },
+  { pt: "aeroporto", en: "airport", size: 127 },
+  { pt: "estação de trem", en: "train station", size: 128 },
+  { pt: "parada de ônibus", en: "bus stop", size: 129 },
+  { pt: "posto de gasolina", en: "gas station", size: 130 },
+  { pt: "cinema", en: "cinema", size: 131 },
+  { pt: "teatro", en: "theater", size: 132 },
+  { pt: "museu", en: "museum", size: 133 },
+  { pt: "zoológico", en: "zoo", size: 134 },
+  { pt: "estádio", en: "stadium", size: 135 },
+  { pt: "parque de diversões", en: "amusement park", size: 136 },
+  { pt: "praia", en: "beach", size: 137 },
+  { pt: "porto", en: "port", size: 138 },
+  { pt: "fábrica", en: "factory", size: 139 },
+  { pt: "torre", en: "tower", size: 140 },
+  { pt: "ponte", en: "bridge", size: 141 },
+  { pt: "farol", en: "lighthouse", size: 142 },
+  { pt: "castelo", en: "castle", size: 143 },
+  { pt: "palácio", en: "palace", size: 144 },
+  { pt: "templo", en: "temple", size: 145 },
+  { pt: "monumento", en: "monument", size: 146 },
+  { pt: "obelisco", en: "obelisk", size: 147 },
+  { pt: "ruínas", en: "ruins", size: 148 },
+  { pt: "catedral", en: "cathedral", size: 149 },
+  { pt: "santuário", en: "shrine", size: 150 },
+  { pt: "parque nacional", en: "national park", size: 151 },
+  { pt: "reserva natural", en: "nature reserve", size: 152 },
+  { pt: "ilha deserta", en: "deserted island", size: 153 },
+  { pt: "ilha tropical", en: "tropical island", size: 154 },
+  { pt: "ilha vulcânica", en: "volcanic island", size: 155 },
+  { pt: "planície", en: "plain", size: 156 },
+  { pt: "planalto", en: "plateau", size: 157 },
+  { pt: "caverna", en: "cave", size: 158 },
+  { pt: "penhasco", en: "cliff", size: 159 },
+  { pt: "desfiladeiro", en: "gorge", size: 160 },
+  { pt: "cânion", en: "canyon", size: 161 },
+  { pt: "campo de flores", en: "flower field", size: 162 },
+  { pt: "floresta tropical", en: "rainforest", size: 163 },
+  { pt: "floresta temperada", en: "temperate forest", size: 164 },
+  { pt: "pântano", en: "swamp", size: 165 },
+  { pt: "pico da montanha", en: "mountain peak", size: 166 },
+  { pt: "ilha de coral", en: "coral island", size: 167 },
+  { pt: "vulcão", en: "volcano", size: 168 },
+  { pt: "glaciar", en: "glacier", size: 169 },
+  { pt: "campo de gelo", en: "ice field", size: 170 },
+  { pt: "deserto de areia", en: "sand desert", size: 171 },
+  { pt: "deserto rochoso", en: "rocky desert", size: 172 },
+  { pt: "campo aberto", en: "open field", size: 173 },
+  { pt: "pântano pantanoso", en: "swampy marsh", size: 174 },
+  { pt: "região montanhosa", en: "mountain region", size: 175 },
+  { pt: "vale fértil", en: "fertile valley", size: 176 },
+  { pt: "planície árida", en: "arid plain", size: 177 },
+  { pt: "bosque", en: "woodland", size: 178 },
+  { pt: "campo de trigo", en: "wheat field", size: 179 },
+  { pt: "campo de milho", en: "corn field", size: 180 },
+  { pt: "fazenda", en: "farm", size: 181 },
+  { pt: "celeiro", en: "barn", size: 182 },
+  { pt: "curral", en: "corral", size: 183 },
+  { pt: "galinheiro", en: "chicken coop", size: 184 },
+  { pt: "estábulo", en: "stable", size: 185 },
+  { pt: "casa de fazenda", en: "farmhouse", size: 186 },
+  { pt: "campo de futebol", en: "soccer field", size: 187 },
+  { pt: "quadra de basquete", en: "basketball court", size: 188 },
+  { pt: "pista de corrida", en: "race track", size: 189 },
+  { pt: "pista de skate", en: "skate park", size: 190 },
+  { pt: "parque infantil", en: "playground", size: 191 },
+  { pt: "pista de ciclismo", en: "bike track", size: 192 },
+  { pt: "campo de golfe", en: "golf course", size: 193 },
+  { pt: "estação de esqui", en: "ski resort", size: 194 },
+  { pt: "pista de esqui", en: "ski slope", size: 195 },
+  { pt: "pista de snowboard", en: "snowboard park", size: 196 },
+  { pt: "campo de tênis", en: "tennis court", size: 197 },
+  { pt: "academia", en: "gym", size: 198 },
+  { pt: "piscina", en: "swimming pool", size: 199 },
+  { pt: "spa", en: "spa", size: 200 },
+  { pt: "hotel de luxo", en: "luxury hotel", size: 201 },
+  { pt: "resort", en: "resort", size: 202 },
+  { pt: "ilha privada", en: "private island", size: 203 },
+  { pt: "castelo medieval", en: "medieval castle", size: 204 },
+  { pt: "fortaleza", en: "fortress", size: 205 },
+  { pt: "palácio real", en: "royal palace", size: 206 },
+  { pt: "torre de observação", en: "watch tower", size: 207 },
+  { pt: "ponte levadiça", en: "drawbridge", size: 208 },
+  { pt: "catedral gótica", en: "gothic cathedral", size: 209 },
+  { pt: "igreja barroca", en: "baroque church", size: 210 },
+  { pt: "monastério", en: "monastery", size: 211 },
+  { pt: "mosteiro", en: "abbey", size: 212 },
+  { pt: "templo budista", en: "buddhist temple", size: 213 },
+  { pt: "templo hindu", en: "hindu temple", size: 214 },
+  { pt: "templo egípcio", en: "egyptian temple", size: 215 },
+  { pt: "pirâmide", en: "pyramid", size: 216 },
+  { pt: "esfinge", en: "sphinx", size: 217 },
+  { pt: "obelisco egípcio", en: "egyptian obelisk", size: 218 },
+  { pt: "ruínas maias", en: "maya ruins", size: 219 },
+  { pt: "ruínas incas", en: "inca ruins", size: 220 },
+  { pt: "cidade antiga", en: "ancient city", size: 221 },
+  { pt: "cidade moderna", en: "modern city", size: 222 },
+  { pt: "bairro histórico", en: "historic district", size: 223 },
+  { pt: "zona industrial", en: "industrial area", size: 224 },
+  { pt: "zona comercial", en: "commercial area", size: 225 },
+  { pt: "zona residencial", en: "residential area", size: 226 },
+  { pt: "parque empresarial", en: "business park", size: 227 },
+  { pt: "centro de convenções", en: "convention center", size: 228 },
+  { pt: "aeroporto internacional", en: "international airport", size: 229 },
+  { pt: "porto marítimo", en: "seaport", size: 230 },
+  { pt: "terminal de ônibus", en: "bus terminal", size: 231 },
+  { pt: "estação ferroviária", en: "railway station", size: 232 },
+  { pt: "terminal de carga", en: "cargo terminal", size: 233 },
+  { pt: "terminal de passageiros", en: "passenger terminal", size: 234 },
+  { pt: "terminal de cruzeiros", en: "cruise terminal", size: 235 },
+  { pt: "porto de pesca", en: "fishing port", size: 236 },
+  { pt: "marina", en: "marina", size: 237 },
+  { pt: "dique seco", en: "dry dock", size: 238 },
+  { pt: "doca", en: "dock", size: 239 },
+  { pt: "cais", en: "pier", size: 240 },
+  { pt: "terminal de petróleo", en: "oil terminal", size: 241 },
+  { pt: "usina", en: "power plant", size: 242 },
+  { pt: "central elétrica", en: "electric plant", size: 243 },
+  { pt: "usina nuclear", en: "nuclear plant", size: 244 },
+  { pt: "usina hidrelétrica", en: "hydroelectric plant", size: 245 },
+  { pt: "fábrica de automóveis", en: "car factory", size: 246 },
+  { pt: "fábrica de aço", en: "steel mill", size: 247 },
+  { pt: "fábrica de papel", en: "paper mill", size: 248 },
+  { pt: "fábrica têxtil", en: "textile factory", size: 249 },
+  { pt: "armazém", en: "warehouse", size: 250 },
+  { pt: "galpão", en: "shed", size: 251 },
+  { pt: "depósito", en: "storage", size: 252 },
+  { pt: "oficina", en: "workshop", size: 253 },
+  { pt: "garagem", en: "garage", size: 254 },
+  { pt: "estacionamento", en: "parking lot", size: 255 },
+  { pt: "pátio", en: "yard", size: 256 },
+  { pt: "quintal", en: "backyard", size: 257 },
+  { pt: "jardim de infância", en: "kindergarten", size: 258 },
+  { pt: "creche", en: "daycare", size: 259 },
+  { pt: "escola primária", en: "primary school", size: 260 },
+  { pt: "escola secundária", en: "high school", size: 261 },
+  { pt: "faculdade", en: "college", size: 262 },
+  { pt: "universidade pública", en: "public university", size: 263 },
+  { pt: "universidade privada", en: "private university", size: 264 },
+  { pt: "biblioteca pública", en: "public library", size: 265 },
+  { pt: "biblioteca universitária", en: "university library", size: 266 },
+  { pt: "museu de arte", en: "art museum", size: 267 },
+  { pt: "museu histórico", en: "history museum", size: 268 },
+  { pt: "galeria de arte", en: "art gallery", size: 269 },
+  { pt: "teatro de ópera", en: "opera theater", size: 270 },
+  { pt: "cinema ao ar livre", en: "open-air cinema", size: 271 },
+  { pt: "sala de concertos", en: "concert hall", size: 272 },
+  { pt: "estádio de futebol", en: "football stadium", size: 273 },
+  { pt: "parque aquático", en: "water park", size: 274 },
+  { pt: "pista de corrida de cavalos", en: "horse race track", size: 275 },
+  { pt: "hipódromo", en: "racetrack", size: 276 },
+  { pt: "campo de tiro", en: "shooting range", size: 277 },
+  { pt: "campo de paintball", en: "paintball field", size: 278 },
+  { pt: "campo de airsoft", en: "airsoft field", size: 279 },
+  { pt: "parque industrial", en: "industrial park", size: 280 },
+  { pt: "zona portuária", en: "port area", size: 281 },
+  { pt: "zona militar", en: "military zone", size: 282 },
+  { pt: "base aérea", en: "air base", size: 283 },
+  { pt: "base naval", en: "naval base", size: 284 },
+  { pt: "quartel", en: "barracks", size: 285 },
+  { pt: "prisão", en: "prison", size: 286 },
+  { pt: "delegacia de polícia", en: "police station", size: 287 },
+  { pt: "corpo de bombeiros", en: "fire department", size: 288 },
+  { pt: "hospital geral", en: "general hospital", size: 289 },
+  { pt: "clínica", en: "clinic", size: 290 },
+  { pt: "laboratório", en: "laboratory", size: 291 },
+  { pt: "farmácia", en: "pharmacy", size: 292 },
+  { pt: "supermercado", en: "supermarket", size: 293 },
+  { pt: "shopping center", en: "shopping mall", size: 294 },
+  { pt: "mercado ao ar livre", en: "open-air market", size: 295 },
+  { pt: "feira", en: "fair", size: 296 },
+  { pt: "festival", en: "festival", size: 297 },
+  { pt: "show", en: "show", size: 298 },
+  { pt: "nave lunar", en: "lunar module", size: 299 },
+  { pt: "meteoroide", en: "meteoroid", size: 300 }
+];
+
+    let language = "pt";
+    let currentItem = items[0];
+    let validatedItems = [currentItem];
+
+    function updateUI(message = "") {
+      document.getElementById("title").textContent = language === "pt" ? "Jogo do Tamanho" : "The Size Game";
+      document.getElementById("check-btn").textContent = language === "pt" ? "Verificar" : "Check";
+      document.getElementById("current-item").textContent =
+        (language === "pt" ? "Item atual: " : "Current item: ") + currentItem[language];
+      document.getElementById("message").textContent = message;
+      document.getElementById("item-input").placeholder =
+        language === "pt" ? "Escreve o próximo item" : "Type the next item";
+      document.getElementById("language-btn").textContent = language === "pt" ? "EN" : "PT";
+      document.getElementById("list-title").textContent = language === "pt" ? "Itens validados" : "Validated items";
+      renderValidatedList();
+    }
+
+    function renderValidatedList() {
+      const list = document.getElementById("validated-list");
+      list.innerHTML = "";
+      validatedItems.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item[language];
+        list.appendChild(li);
+      });
+    }
+
+    function checkItem() {
+      const userInput = document.getElementById("item-input").value.trim().toLowerCase();
+      const nextItem = items.find(item => item[language].toLowerCase() === userInput);
+
+      if (!nextItem) {
+        updateUI(language === "pt" ? "Item não existe!" : "Item not found!");
+        return;
+      }
+
+      if (nextItem.size > currentItem.size) {
+        currentItem = nextItem;
+        validatedItems.push(nextItem);
+        updateUI(language === "pt" ? "Correto! O item é maior." : "Correct! The item is bigger.");
+      } else {
+        showLossModal();
+        currentItem = items[0];
+        validatedItems = [currentItem];
+      }
+
+      document.getElementById("item-input").value = "";
+    }
+
+    function toggleLanguage() {
+      language = language === "pt" ? "en" : "pt";
+      updateUI();
+    }
+
+    function showLossModal() {
+      const modal = document.getElementById("loss-modal");
+      document.getElementById("modal-title").textContent = language === "pt" ? "Perdeste!" : "You lost!";
+      document.getElementById("modal-message").textContent =
+        language === "pt"
+          ? "Isso não é maior que o item anterior. Voltando ao papel..."
+          : "That is not bigger than the last item. Returning to paper...";
+      modal.style.display = "block";
+    }
+
+    function closeModal() {
+      document.getElementById("loss-modal").style.display = "none";
+      updateUI();
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>
+
+
